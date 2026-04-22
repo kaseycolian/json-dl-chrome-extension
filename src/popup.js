@@ -75,6 +75,7 @@ function render() {
       </div>
       <div class="ep-actions">
         <button class="ep-btn" data-action="copy" data-i="${i}" title="Copy">⎘</button>
+        <span class="ep-btn" title="${escHtml(ep.url)}">⌕</span>
         <button class="ep-btn delete" data-action="delete" data-i="${i}" title="Remove">✕</button>
       </div>
     </div>`).join('');

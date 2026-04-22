@@ -12,13 +12,7 @@ chrome.devtools.network.onRequestFinished.addListener(async (request) => {
 
   if (!isEnabled) return;
 
-  const url         = request.request.url;
-  const contentType = (request.response.content.mimeType || '').toLowerCase();
-  const isJson      = contentType.includes('application/json')
-                   || contentType.includes('text/json')
-                   || url.includes('.json');
-
-  if (!isJson) return;
+  const url = request.request.url;
 
   // ── Filter matching ────────────────────────────────────────────────────────
   // If there are no enabled endpoint filters, capture everything.
