@@ -22,6 +22,27 @@
       --danger: #ff4466;
       --danger-dim: rgba(255,68,102,0.1);
       --warn: #ffaa00;
+      --accent-hover: #33ffaa;
+      --warn-dim: rgba(255,170,0,0.1);
+      --status-dot: var(--accent);
+    }
+
+    [data-theme="rink"] {
+      --bg: #0a0a0c;
+      --surface: #111115;
+      --surface2: #18181e;
+      --border: #2a2a35;
+      --accent: #d312a0;
+      --accent-dim: rgba(211,18,160,0.1);
+      --accent-mid: rgba(211,18,160,0.25);
+      --text: #e8e8f0;
+      --muted: #666678;
+      --danger: #663399;
+      --danger-dim: rgba(102,51,153,0.1);
+      --warn: #12b106;
+      --warn-dim: rgba(18,177,6,0.1);
+      --accent-hover: #e540bb;
+      --status-dot: #12b106;
     }
 
     body {
@@ -162,8 +183,8 @@
     }
 
     .dot.active {
-      background: var(--accent);
-      box-shadow: 0 0 6px var(--accent);
+      background: var(--status-dot);
+      box-shadow: 0 0 6px var(--status-dot);
       animation: pulse 2s infinite;
     }
 
@@ -245,7 +266,7 @@
     }
 
     .btn-add:hover {
-      background: #33ffaa;
+      background: var(--accent-hover);
       transform: translateY(-1px);
     }
 
@@ -349,7 +370,7 @@
     .ep-url .match-type {
       font-size: 9px;
       color: var(--warn);
-      background: rgba(255,170,0,0.1);
+      background: var(--warn-dim);
       padding: 1px 4px;
       border-radius: 3px;
       margin-right: 5px;
@@ -435,6 +456,40 @@
       opacity: 1;
       transform: translateX(-50%) translateY(0);
     }
+
+    /* Theme selector */
+    .theme-bar {
+      padding: 8px 20px 12px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .theme-bar .section-label { margin-bottom: 0; flex-shrink: 0; }
+    .theme-swatches { display: flex; gap: 6px; }
+    .theme-swatch {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      cursor: pointer;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      transition: all 0.2s;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    .theme-swatch:hover { border-color: var(--accent-mid); color: var(--text); }
+    .theme-swatch.active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+    .swatch-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .theme-swatch[data-theme-id="neo"] .swatch-dot  { background: #00ff88; }
+    .theme-swatch[data-theme-id="rink"] .swatch-dot { background: #d312a0; }
   </style>
 </head>
 <body>
@@ -479,6 +534,14 @@
   <div class="footer">
     <span class="footer-note">DevTools must be open to capture</span>
     <button class="btn-clear" id="clearCountBtn">Reset count</button>
+  </div>
+
+  <div class="theme-bar">
+    <span class="section-label">THEME</span>
+    <div class="theme-swatches">
+      <div class="theme-swatch active" data-theme-id="neo"><span class="swatch-dot"></span>NEO</div>
+      <div class="theme-swatch" data-theme-id="rink"><span class="swatch-dot"></span>RINK</div>
+    </div>
   </div>
 
   <div class="toast" id="toast"></div>

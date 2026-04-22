@@ -27,6 +27,8 @@ chrome.devtools.network.onRequestFinished.addListener(async (request) => {
   if (activeFilters.length > 0) {
     const matched = activeFilters.some(ep => matchesFilter(url, ep));
     if (!matched) return;
+  } else {
+    return;
   }
 
   // ── Get response body ──────────────────────────────────────────────────────
@@ -58,6 +60,7 @@ chrome.devtools.network.onRequestFinished.addListener(async (request) => {
     // Bump counter
     chrome.storage.local.set({ captureCount: captureCount + 1 });
   });
+
 });
 
 // ── Filter logic ─────────────────────────────────────────────────────────────

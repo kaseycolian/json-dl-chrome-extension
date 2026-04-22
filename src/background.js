@@ -6,7 +6,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   const { body, filename } = msg;
 
   // Encode body as a data URL (service workers can't use URL.createObjectURL)
-  const base64 = btoa(unescape(encodeURIComponent(body)));
+  const base64 = btoa(Array.from(new TextEncoder().encode(body), b => String.fromCharCode(b)).join(''));
   const dataUrl = `data:application/json;base64,${base64}`;
 
   chrome.downloads.download({

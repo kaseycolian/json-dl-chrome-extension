@@ -5,14 +5,16 @@ const $ = id => document.getElementById(id);
 let endpoints = [];
 let isEnabled = false;
 let captureCount = 0;
+let currentTheme = 'neo';
 
 // ── Storage helpers ──────────────────────────────────────────────────────────
 
 function load(cb) {
-  chrome.storage.local.get(['endpoints', 'enabled', 'captureCount'], data => {
+  chrome.storage.local.get(['endpoints', 'enabled', 'captureCount', 'theme'], data => {
     endpoints    = data.endpoints    ?? [];
     isEnabled    = data.enabled      ?? false;
     captureCount = data.captureCount ?? 0;
+    currentTheme = data.theme        ?? 'neo';
     cb();
   });
 }
@@ -21,9 +23,27 @@ function save() {
   chrome.storage.local.set({ endpoints, enabled: isEnabled, captureCount });
 }
 
+function saveTheme() {
+  chrome.storage.local.set({ theme: currentTheme });
+}
+
+function applyTheme(name) {
+  currentTheme = name;
+  if (name === 'rink') {
+    document.documentElement.setAttribute('data-theme', 'rink');
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+  }
+  document.querySelectorAll('.theme-swatch').forEach(el => {
+    el.classList.toggle('active', el.dataset.themeId === name);
+  });
+}
+
 // ── Render ───────────────────────────────────────────────────────────────────
 
 function render() {
+  applyTheme(currentTheme);
+
   // Toggle
   $('masterToggle').checked = isEnabled;
   $('toggleLabel').textContent = isEnabled ? 'ON' : 'OFF';
@@ -121,6 +141,16 @@ $('clearCountBtn').addEventListener('click', () => {
   captureCount = 0;
   save(); render();
   toast('Count reset');
+});
+
+document.querySelectorAll('.theme-swatch').forEach(swatch => {
+  swatch.addEventListener('click', () => {
+    const selected = swatch.dataset.themeId;
+    if (selected === currentTheme) return;
+    applyTheme(selected);
+    saveTheme();
+    toast(`Theme: ${selected.toUpperCase()}`);
+  });
 });
 
 // ── Toast ────────────────────────────────────────────────────────────────────
