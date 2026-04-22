@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>JSON Interceptor</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;600;700;800&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d0d0f;
+      --surface: #141418;
+      --surface2: #1c1c22;
+      --border: #2a2a35;
+      --accent: #00ff88;
+      --accent-dim: rgba(0,255,136,0.1);
+      --accent-mid: rgba(0,255,136,0.25);
+      --text: #e8e8f0;
+      --muted: #666678;
+      --danger: #ff4466;
+      --danger-dim: rgba(255,68,102,0.1);
+      --warn: #ffaa00;
+    }
+
+    body {
+      width: 360px;
+      min-height: 480px;
+      background: var(--bg);
+      font-family: 'Syne', sans-serif;
+      color: var(--text);
+      overflow: hidden;
+    }
+
+    /* Header */
+    .header {
+      padding: 18px 20px 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--surface);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .logo-icon {
+      width: 28px;
+      height: 28px;
+      background: var(--accent);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      font-weight: 700;
+      color: #000;
+      letter-spacing: -1px;
+    }
+
+    .logo-text {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .logo-text span {
+      color: var(--accent);
+    }
+
+    /* Toggle */
+    .toggle-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    .toggle-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      transition: color 0.2s;
+    }
+
+    .toggle-label.active { color: var(--accent); }
+
+    .toggle {
+      position: relative;
+      width: 40px;
+      height: 22px;
+    }
+
+    .toggle input { display: none; }
+
+    .toggle-track {
+      position: absolute;
+      inset: 0;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 11px;
+      transition: all 0.25s ease;
+      cursor: pointer;
+    }
+
+    .toggle-track::after {
+      content: '';
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--muted);
+      transition: all 0.25s ease;
+    }
+
+    input:checked + .toggle-track {
+      background: var(--accent-dim);
+      border-color: var(--accent);
+    }
+
+    input:checked + .toggle-track::after {
+      left: calc(100% - 17px);
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+    }
+
+    /* Status bar */
+    .status-bar {
+      padding: 8px 20px;
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--muted);
+    }
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--muted);
+      transition: all 0.3s;
+    }
+
+    .dot.active {
+      background: var(--accent);
+      box-shadow: 0 0 6px var(--accent);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .capture-count {
+      font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--muted);
+    }
+
+    .capture-count span {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    /* Body */
+    .body {
+      padding: 16px 20px;
+    }
+
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    /* Add endpoint */
+    .add-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .input-wrap {
+      flex: 1;
+      position: relative;
+    }
+
+    .input-wrap input {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .input-wrap input::placeholder { color: var(--muted); }
+
+    .input-wrap input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-dim);
+    }
+
+    .btn-add {
+      background: var(--accent);
+      color: #000;
+      border: none;
+      border-radius: 8px;
+      padding: 9px 14px;
+      font-family: 'Syne', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+      letter-spacing: 0.02em;
+    }
+
+    .btn-add:hover {
+      background: #33ffaa;
+      transform: translateY(-1px);
+    }
+
+    .btn-add:active { transform: translateY(0); }
+
+    /* Endpoint list */
+    .endpoints-wrap {
+      max-height: 280px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+
+    .endpoints-wrap::-webkit-scrollbar { width: 4px; }
+    .endpoints-wrap::-webkit-scrollbar-track { background: transparent; }
+    .endpoints-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .empty-state {
+      text-align: center;
+      padding: 32px 0;
+      color: var(--muted);
+    }
+
+    .empty-state .empty-icon {
+      font-size: 28px;
+      margin-bottom: 10px;
+      opacity: 0.4;
+    }
+
+    .empty-state p {
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .empty-state code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      background: var(--surface2);
+      padding: 2px 5px;
+      border-radius: 3px;
+      color: var(--accent);
+    }
+
+    .endpoint-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 6px;
+      transition: all 0.2s;
+      animation: slideIn 0.2s ease;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .endpoint-item:hover { border-color: var(--accent-mid); }
+
+    .endpoint-item.disabled { opacity: 0.45; }
+
+    .ep-toggle {
+      flex-shrink: 0;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      cursor: pointer;
+      transition: all 0.2s;
+      background: transparent;
+      position: relative;
+    }
+
+    .ep-toggle.on {
+      border-color: var(--accent);
+      background: var(--accent);
+    }
+
+    .ep-toggle.on::after {
+      content: '';
+      position: absolute;
+      inset: 2px;
+      border-radius: 50%;
+      background: #000;
+    }
+
+    .ep-url {
+      flex: 1;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10.5px;
+      color: var(--text);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .ep-url .match-type {
+      font-size: 9px;
+      color: var(--warn);
+      background: rgba(255,170,0,0.1);
+      padding: 1px 4px;
+      border-radius: 3px;
+      margin-right: 5px;
+      font-weight: 600;
+    }
+
+    .ep-actions {
+      display: flex;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .ep-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 5px;
+      width: 24px;
+      height: 24px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      transition: all 0.15s;
+      color: var(--muted);
+    }
+
+    .ep-btn:hover { background: var(--surface2); border-color: var(--border); color: var(--text); }
+    .ep-btn.delete:hover { background: var(--danger-dim); border-color: var(--danger); color: var(--danger); }
+
+    /* Footer */
+    .footer {
+      padding: 10px 20px 14px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .footer-note {
+      font-size: 10px;
+      color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .btn-clear {
+      font-size: 10px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 600;
+      color: var(--danger);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 5px;
+      transition: all 0.15s;
+      letter-spacing: 0.05em;
+    }
+
+    .btn-clear:hover { background: var(--danger-dim); }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%) translateY(10px);
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--accent);
+      opacity: 0;
+      transition: all 0.25s;
+      pointer-events: none;
+      white-space: nowrap;
+      z-index: 100;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="logo">
+      <div class="logo-icon">{}</div>
+      <div class="logo-text">JSON<span>tap</span></div>
+    </div>
+    <label class="toggle-wrap">
+      <span class="toggle-label" id="toggleLabel">OFF</span>
+      <div class="toggle">
+        <input type="checkbox" id="masterToggle" />
+        <div class="toggle-track"></div>
+      </div>
+    </label>
+  </div>
+
+  <div class="status-bar">
+    <div class="status-indicator">
+      <div class="dot" id="statusDot"></div>
+      <span id="statusText">Idle — open DevTools to capture</span>
+    </div>
+    <div class="capture-count">
+      <span id="captureCount">0</span> captured
+    </div>
+  </div>
+
+  <div class="body">
+    <div class="section-label">Endpoint Filters</div>
+    <div class="add-row">
+      <div class="input-wrap">
+        <input type="text" id="endpointInput" placeholder="api.example.com/data or /endpoint" />
+      </div>
+      <button class="btn-add" id="addBtn">+ Add</button>
+    </div>
+    <div class="endpoints-wrap" id="endpointList">
+      <!-- populated by JS -->
+    </div>
+  </div>
+
+  <div class="footer">
+    <span class="footer-note">DevTools must be open to capture</span>
+    <button class="btn-clear" id="clearCountBtn">Reset count</button>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
