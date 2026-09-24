@@ -4,64 +4,40 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>JSON Interceptor</title>
+  <!-- Theme service (see theme/THEME-SERVICE.md). theme-init.js must stay external and first:
+       it applies the saved theme before paint, and MV3 blocks inline scripts. -->
+  <script src="theme/theme-init.js"></script>
+  <link rel="stylesheet" href="theme/theme.css">
+  <link rel="stylesheet" href="theme/effects.css">
+  <link rel="stylesheet" href="theme/components.css">
+  <link rel="stylesheet" href="theme/dropdown.css">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;600;700;800&display=swap');
-
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --bg: #0d0d0f;
-      --surface: #141418;
-      --surface2: #1c1c22;
-      --border: #2a2a35;
-      --accent: #00ff88;
-      --accent-dim: rgba(0,255,136,0.1);
-      --accent-mid: rgba(0,255,136,0.25);
-      --text: #e8e8f0;
-      --muted: #666678;
-      --danger: #ff4466;
-      --danger-dim: rgba(255,68,102,0.1);
-      --warn: #ffaa00;
-      --accent-hover: #33ffaa;
-      --warn-dim: rgba(255,170,0,0.1);
-      --status-dot: var(--accent);
-    }
-
-    [data-theme="rink"] {
-      --bg: #0a0a0c;
-      --surface: #111115;
-      --surface2: #18181e;
-      --border: #2a2a35;
-      --accent: #d312a0;
-      --accent-dim: rgba(211,18,160,0.1);
-      --accent-mid: rgba(211,18,160,0.25);
-      --text: #e8e8f0;
-      --muted: #666678;
-      --danger: #663399;
-      --danger-dim: rgba(102,51,153,0.1);
-      --warn: #12b106;
-      --warn-dim: rgba(18,177,6,0.1);
-      --accent-hover: #e540bb;
-      --status-dot: #12b106;
-    }
 
     body {
       width: 360px;
       min-height: 480px;
+      display: flex;
+      flex-direction: column;
       background: var(--bg);
-      font-family: 'Syne', sans-serif;
+      font-family: var(--font-ui);
       color: var(--text);
       overflow: hidden;
     }
 
+    /* Keep the bars' neon edge + glow, but on a flat fill: the gradient's tinted
+       middle drops the text sitting on them below AA in several themes. */
+    .header.fx-bar-top,
+    .footer-area.fx-bar-bottom { background: var(--bg-panel); }
+
     /* Header */
     .header {
+      position: relative;
+      z-index: 1; /* keep the bar's glow above the status bar */
       padding: 18px 20px 14px;
-      border-bottom: 1px solid var(--border);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      background: var(--surface);
     }
 
     .logo {
@@ -73,92 +49,60 @@
     .logo-icon {
       width: 28px;
       height: 28px;
-      background: var(--accent);
-      border-radius: 6px;
+      background: var(--accent-pink);
+      box-shadow: var(--bglow-pink);
+      border-radius: var(--radius-sm);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-family: 'JetBrains Mono', monospace;
+      font-family: var(--font-mono);
       font-size: 12px;
       font-weight: 700;
-      color: #000;
+      color: var(--on-pink);
       letter-spacing: -1px;
     }
 
     .logo-text {
       font-size: 15px;
-      font-weight: 700;
-      letter-spacing: 0.02em;
+      font-weight: 800;
+      font-style: italic;
+      letter-spacing: 1px;
     }
 
     .logo-text span {
-      color: var(--accent);
+      color: var(--accent-pink);
+      text-shadow: var(--tglow-pink);
     }
 
-    /* Toggle */
-    .toggle-wrap {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      cursor: pointer;
+    /* Master toggle — .switch from components.css, laid out label-first */
+    .header .switch { flex-direction: row-reverse; }
+
+    .switch.a-pink input:checked + .track {
+      background: var(--accent-pink);
+      border-color: var(--accent-pink);
+      box-shadow: var(--bglow-pink);
     }
+
+    .switch.a-pink input:checked + .track .thumb { background: var(--on-pink); }
 
     .toggle-label {
       font-size: 11px;
-      font-weight: 600;
+      font-weight: 700;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      color: var(--muted);
-      transition: color 0.2s;
+      color: var(--text-muted);
+      transition: color var(--dur);
     }
 
-    .toggle-label.active { color: var(--accent); }
-
-    .toggle {
-      position: relative;
-      width: 40px;
-      height: 22px;
-    }
-
-    .toggle input { display: none; }
-
-    .toggle-track {
-      position: absolute;
-      inset: 0;
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 11px;
-      transition: all 0.25s ease;
-      cursor: pointer;
-    }
-
-    .toggle-track::after {
-      content: '';
-      position: absolute;
-      top: 3px;
-      left: 3px;
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      background: var(--muted);
-      transition: all 0.25s ease;
-    }
-
-    input:checked + .toggle-track {
-      background: var(--accent-dim);
-      border-color: var(--accent);
-    }
-
-    input:checked + .toggle-track::after {
-      left: calc(100% - 17px);
-      background: var(--accent);
-      box-shadow: 0 0 8px var(--accent);
+    .toggle-label.active {
+      color: var(--accent-pink);
+      text-shadow: var(--tglow-pink-sm);
     }
 
     /* Status bar */
     .status-bar {
       padding: 8px 20px;
-      background: var(--surface2);
+      background: var(--bg-panel);
       border-bottom: 1px solid var(--border);
       display: flex;
       align-items: center;
@@ -170,21 +114,21 @@
       align-items: center;
       gap: 6px;
       font-size: 11px;
-      font-family: 'JetBrains Mono', monospace;
-      color: var(--muted);
+      font-family: var(--font-mono);
+      color: var(--text-muted);
     }
 
     .dot {
       width: 6px;
       height: 6px;
       border-radius: 50%;
-      background: var(--muted);
-      transition: all 0.3s;
+      background: var(--text-muted);
+      transition: background var(--dur), box-shadow var(--dur);
     }
 
     .dot.active {
-      background: var(--status-dot);
-      box-shadow: 0 0 6px var(--status-dot);
+      background: var(--accent-green);
+      box-shadow: var(--bglow-green);
       animation: pulse 2s infinite;
     }
 
@@ -195,13 +139,13 @@
 
     .capture-count {
       font-size: 11px;
-      font-family: 'JetBrains Mono', monospace;
-      color: var(--muted);
+      font-family: var(--font-mono);
+      color: var(--text-muted);
     }
 
     .capture-count span {
-      color: var(--accent);
-      font-weight: 600;
+      color: var(--accent-pink);
+      font-weight: 700;
     }
 
     /* Body */
@@ -209,12 +153,8 @@
       padding: 16px 20px;
     }
 
-    .section-label {
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--muted);
+    .body .field-label {
+      display: block;
       margin-bottom: 10px;
     }
 
@@ -227,67 +167,30 @@
 
     .input-wrap {
       flex: 1;
-      position: relative;
+      min-width: 0;
     }
 
-    .input-wrap input {
+    .input-wrap .input {
       width: 100%;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 9px 12px;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
-      color: var(--text);
-      outline: none;
-      transition: border-color 0.2s;
-    }
-
-    .input-wrap input::placeholder { color: var(--muted); }
-
-    .input-wrap input:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px var(--accent-dim);
-    }
-
-    .btn-add {
-      background: var(--accent);
-      color: #000;
-      border: none;
-      border-radius: 8px;
-      padding: 9px 14px;
-      font-family: 'Syne', sans-serif;
+      font-family: var(--font-mono);
       font-size: 12px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.2s;
+    }
+
+    .add-row .btn {
+      flex-shrink: 0;
       white-space: nowrap;
-      letter-spacing: 0.02em;
     }
-
-    .btn-add:hover {
-      background: var(--accent-hover);
-      transform: translateY(-1px);
-    }
-
-    .btn-add:active { transform: translateY(0); }
 
     /* Endpoint list */
     .endpoints-wrap {
-      max-height: 280px;
+      max-height: 250px;
       overflow-y: auto;
-      scrollbar-width: thin;
-      scrollbar-color: var(--border) transparent;
     }
-
-    .endpoints-wrap::-webkit-scrollbar { width: 4px; }
-    .endpoints-wrap::-webkit-scrollbar-track { background: transparent; }
-    .endpoints-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
     .empty-state {
       text-align: center;
       padding: 32px 0;
-      color: var(--muted);
+      color: var(--text-muted);
     }
 
     .empty-state .empty-icon {
@@ -302,24 +205,25 @@
     }
 
     .empty-state code {
-      font-family: 'JetBrains Mono', monospace;
+      font-family: var(--font-mono);
       font-size: 10px;
-      background: var(--surface2);
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
       padding: 2px 5px;
       border-radius: 3px;
-      color: var(--accent);
+      color: var(--accent-pink);
     }
 
     .endpoint-item {
       display: flex;
       align-items: center;
       gap: 8px;
-      padding: 9px 12px;
-      background: var(--surface);
+      padding: 9px 12px 9px 7px;
+      background: var(--bg-panel);
       border: 1px solid var(--border);
-      border-radius: 8px;
+      border-radius: var(--radius-sm);
       margin-bottom: 6px;
-      transition: all 0.2s;
+      transition: border-color var(--dur) ease;
       animation: slideIn 0.2s ease;
     }
 
@@ -328,52 +232,84 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
-    .endpoint-item:hover { border-color: var(--accent-mid); }
+    .endpoint-item:hover { border-color: var(--accent-blue); }
 
-    .endpoint-item.disabled { opacity: 0.45; }
+    .endpoint-item.disabled .ep-url { color: var(--text-muted); }
 
+    /* Per-filter on/off: a 24px target around a 14px ring */
     .ep-toggle {
       flex-shrink: 0;
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      border: 2px solid var(--border);
-      cursor: pointer;
-      transition: all 0.2s;
-      background: transparent;
       position: relative;
+      width: 24px;
+      height: 24px;
+      border: none;
+      border-radius: 50%;
+      background: transparent;
+      cursor: pointer;
     }
 
-    .ep-toggle.on {
-      border-color: var(--accent);
-      background: var(--accent);
+    .ep-toggle::before {
+      content: '';
+      position: absolute;
+      inset: 5px;
+      border-radius: 50%;
+      border: 2px solid var(--border-strong);
+      transition: background var(--dur), border-color var(--dur);
+    }
+
+    .ep-toggle:hover::before { border-color: var(--accent-pink); }
+
+    .ep-toggle.on::before {
+      border-color: var(--accent-pink);
+      background: var(--accent-pink);
+      box-shadow: 0 0 calc(6px * var(--glow-strength)) color-mix(in srgb, var(--accent-pink) 55%, transparent);
     }
 
     .ep-toggle.on::after {
       content: '';
       position: absolute;
-      inset: 2px;
+      inset: 9px;
       border-radius: 50%;
-      background: #000;
+      background: var(--on-pink);
+    }
+
+    .ep-toggle:focus-visible {
+      outline: 3px solid var(--focus-ring);
+      outline-offset: 2px;
     }
 
     .ep-url {
       flex: 1;
-      font-family: 'JetBrains Mono', monospace;
+      min-width: 0;
+      font-family: var(--font-mono);
       font-size: 10.5px;
       color: var(--text);
       overflow-x: auto;
       white-space: nowrap;
     }
 
+    /* Thin horizontal take on .fx-scroll for long URLs. The scrollbar is 12px tall but its
+       top 6px is a transparent border, so the gap above it only exists when it scrolls. */
+    .ep-url.fx-scroll::-webkit-scrollbar { height: 12px; }
+
+    .ep-url.fx-scroll::-webkit-scrollbar-track {
+      border-top: 6px solid transparent;
+      background-clip: padding-box;
+    }
+
+    .ep-url.fx-scroll::-webkit-scrollbar-thumb {
+      background: linear-gradient(90deg, var(--accent-pink), var(--accent-purple) 55%, var(--accent-blue));
+      border: 1px solid transparent;
+      border-top-width: 7px;
+      background-clip: padding-box;
+      box-shadow: none;
+    }
+
     .ep-url .match-type {
       font-size: 9px;
-      color: var(--warn);
-      background: var(--warn-dim);
-      padding: 1px 4px;
-      border-radius: 3px;
+      padding: 1px 6px;
       margin-right: 5px;
-      font-weight: 600;
+      vertical-align: 1px;
     }
 
     .ep-actions {
@@ -382,28 +318,47 @@
       flex-shrink: 0;
     }
 
-    .ep-btn {
-      background: transparent;
-      border: 1px solid transparent;
-      border-radius: 5px;
+    .ep-actions .btn-icon {
       width: 24px;
       height: 24px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
       font-size: 12px;
-      transition: all 0.15s;
-      color: var(--muted);
     }
 
-    .ep-btn:hover { background: var(--surface2); border-color: var(--border); color: var(--text); }
-    .ep-btn.delete:hover { background: var(--danger-dim); border-color: var(--danger); color: var(--danger); }
+    /* Click-to-peek box showing a filter's full URL (same pattern as url-maker).
+       A manual popover, so it sits in the top layer over the popup instead of
+       growing the scrolling list (no ancestor transform can trap it). popup.js
+       sets top/left/width from the row when it opens. */
+    .value-tip {
+      position: fixed;
+      inset: auto;
+      margin: 0;
+      padding: 8px 10px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--accent-blue);
+      background: var(--bg-elevated);
+      border: 2px solid var(--accent-blue);
+      border-radius: var(--radius-sm);
+      box-shadow: 0 0 12px color-mix(in srgb, var(--accent-blue) calc(50% * var(--glow-strength)), transparent);
+      word-break: break-all;
+      user-select: all;
+    }
 
-    /* Footer */
+    .btn-icon.danger {
+      color: var(--accent-pink);
+      background: color-mix(in srgb, var(--accent-pink) 10%, transparent);
+    }
+
+    .btn-icon.danger:hover:not(:disabled) {
+      background: color-mix(in srgb, var(--accent-pink) 20%, transparent);
+      box-shadow: var(--bglow-pink);
+    }
+
+    /* Footer + theme bar share one bottom bar */
+    .footer-area { margin-top: auto; }
+
     .footer {
-      padding: 10px 20px 14px;
-      border-top: 1px solid var(--border);
+      padding: 8px 20px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -411,25 +366,15 @@
 
     .footer-note {
       font-size: 10px;
-      color: var(--muted);
-      font-family: 'JetBrains Mono', monospace;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
     }
 
-    .btn-clear {
+    .footer .btn {
       font-size: 10px;
-      font-family: 'Syne', sans-serif;
-      font-weight: 600;
-      color: var(--danger);
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 4px 8px;
-      border-radius: 5px;
-      transition: all 0.15s;
+      padding: 4px 10px;
       letter-spacing: 0.05em;
     }
-
-    .btn-clear:hover { background: var(--danger-dim); }
 
     /* Toast */
     .toast {
@@ -437,15 +382,16 @@
       bottom: 16px;
       left: 50%;
       transform: translateX(-50%) translateY(10px);
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 8px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--accent-blue);
+      box-shadow: var(--bglow-blue);
+      border-radius: var(--radius-sm);
       padding: 8px 14px;
       font-size: 11px;
-      font-family: 'JetBrains Mono', monospace;
-      color: var(--accent);
+      font-family: var(--font-mono);
+      color: var(--text);
       opacity: 0;
-      transition: all 0.25s;
+      transition: opacity var(--dur) ease, transform var(--dur) ease;
       pointer-events: none;
       white-space: nowrap;
       z-index: 100;
@@ -458,52 +404,49 @@
 
     /* Theme selector */
     .theme-bar {
-      padding: 8px 20px 12px;
+      padding: 10px 20px 14px;
       border-top: 1px solid var(--border);
       display: flex;
-      align-items: center;
-      gap: 12px;
+      flex-direction: column;
+      gap: 8px;
     }
-    .theme-bar .section-label { margin-bottom: 0; flex-shrink: 0; }
-    .theme-swatches { display: flex; gap: 6px; }
-    .theme-swatch {
+
+    .theme-bar-head {
       display: flex;
       align-items: center;
-      gap: 5px;
-      padding: 4px 10px;
-      border-radius: 6px;
-      border: 1px solid var(--border);
-      background: var(--surface2);
-      cursor: pointer;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 10px;
-      font-weight: 600;
-      letter-spacing: 0.06em;
-      color: var(--muted);
-      transition: all 0.2s;
-      -webkit-user-select: none;
-      user-select: none;
+      justify-content: space-between;
     }
-    .theme-swatch:hover { border-color: var(--accent-mid); color: var(--text); }
-    .theme-swatch.active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
-    .swatch-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-    .theme-swatch[data-theme-id="neo"] .swatch-dot  { background: #00ff88; }
-    .theme-swatch[data-theme-id="rink"] .swatch-dot { background: #d312a0; }
+
+    .theme-bar .choice { font-size: 11px; }
+
+    .theme-bar .dropdown-toggle {
+      min-height: 36px;
+      padding: 5px 10px;
+      font-size: 13px;
+    }
+
+    /* Motion off (toggle or OS setting): stop the app's own keyframe animations.
+       Transitions already collapse through var(--dur). */
+    [data-motion="off"] .dot.active,
+    [data-motion="off"] .endpoint-item { animation: none; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .dot.active,
+      .endpoint-item { animation: none; }
+    }
   </style>
 </head>
-<body>
+<body class="fx-grid">
 
-  <div class="header">
+  <div class="header fx-bar-top">
     <div class="logo">
-      <div class="logo-icon">{}</div>
+      <div class="logo-icon" aria-hidden="true">{}</div>
       <div class="logo-text">JSON<span>tap</span></div>
     </div>
-    <label class="toggle-wrap">
-      <span class="toggle-label" id="toggleLabel">OFF</span>
-      <div class="toggle">
-        <input type="checkbox" id="masterToggle" />
-        <div class="toggle-track"></div>
-      </div>
+    <label class="switch a-pink">
+      <input type="checkbox" id="masterToggle" aria-label="Capture JSON" />
+      <span class="track"><span class="thumb"></span></span>
+      <span class="toggle-label" id="toggleLabel" aria-hidden="true">OFF</span>
     </label>
   </div>
 
@@ -518,33 +461,37 @@
   </div>
 
   <div class="body">
-    <div class="section-label">Endpoint Filters</div>
+    <label class="field-label" for="endpointInput">Endpoint Filters</label>
     <div class="add-row">
       <div class="input-wrap">
-        <input type="text" id="endpointInput" placeholder="api.example.com/data or /endpoint" />
+        <input class="input" type="text" id="endpointInput" placeholder="api.example.com/data or /endpoint" />
       </div>
-      <button class="btn-add" id="addBtn">+ Add</button>
+      <button class="btn btn-solid a-pink" id="addBtn">+ Add</button>
     </div>
-    <div class="endpoints-wrap" id="endpointList">
+    <div class="endpoints-wrap fx-scroll" id="endpointList">
       <!-- populated by JS -->
     </div>
   </div>
 
-  <div class="footer">
-    <span class="footer-note">DevTools must be open to capture</span>
-    <button class="btn-clear" id="clearCountBtn">Reset count</button>
-  </div>
+  <div class="footer-area fx-bar-bottom">
+    <div class="footer">
+      <span class="footer-note">DevTools must be open to capture</span>
+      <button class="btn btn-ghost" id="clearCountBtn">Reset count</button>
+    </div>
 
-  <div class="theme-bar">
-    <span class="section-label">THEME</span>
-    <div class="theme-swatches">
-      <div class="theme-swatch active" data-theme-id="neo"><span class="swatch-dot"></span>NEO</div>
-      <div class="theme-swatch" data-theme-id="rink"><span class="swatch-dot"></span>RINK</div>
+    <div class="theme-bar">
+      <div class="theme-bar-head">
+        <label class="field-label" for="themeSelect">Theme</label>
+        <label class="choice"><input type="checkbox" data-motion-toggle> Reduce motion</label>
+      </div>
+      <select id="themeSelect" data-theme-select data-dropdown></select>
     </div>
   </div>
 
-  <div class="toast" id="toast"></div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+  <script src="theme/theme-select.js"></script>
+  <script src="theme/dropdown.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

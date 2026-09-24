@@ -5,16 +5,16 @@ const $ = id => document.getElementById(id);
 let endpoints = [];
 let isEnabled = false;
 let captureCount = 0;
-let currentTheme = 'neo';
 
 // ── Storage helpers ──────────────────────────────────────────────────────────
 
 function load(cb) {
-  chrome.storage.local.get(['endpoints', 'enabled', 'captureCount', 'theme'], data => {
+  // The theme is handled by theme/theme-select.js (localStorage); drop the old NEO/RINK key.
+  chrome.storage.local.remove('theme');
+  chrome.storage.local.get(['endpoints', 'enabled', 'captureCount'], data => {
     endpoints    = data.endpoints    ?? [];
     isEnabled    = data.enabled      ?? false;
     captureCount = data.captureCount ?? 0;
-    currentTheme = data.theme        ?? 'neo';
     cb();
   });
 }
@@ -23,27 +23,9 @@ function save() {
   chrome.storage.local.set({ endpoints, enabled: isEnabled, captureCount });
 }
 
-function saveTheme() {
-  chrome.storage.local.set({ theme: currentTheme });
-}
-
-function applyTheme(name) {
-  currentTheme = name;
-  if (name === 'rink') {
-    document.documentElement.setAttribute('data-theme', 'rink');
-  } else {
-    document.documentElement.removeAttribute('data-theme');
-  }
-  document.querySelectorAll('.theme-swatch').forEach(el => {
-    el.classList.toggle('active', el.dataset.themeId === name);
-  });
-}
-
 // ── Render ───────────────────────────────────────────────────────────────────
 
 function render() {
-  applyTheme(currentTheme);
-
   // Toggle
   $('masterToggle').checked = isEnabled;
   $('toggleLabel').textContent = isEnabled ? 'ON' : 'OFF';
@@ -69,15 +51,16 @@ function render() {
 
   list.innerHTML = endpoints.map((ep, i) => `
     <div class="endpoint-item ${ep.enabled ? '' : 'disabled'}" data-i="${i}">
-      <div class="ep-toggle ${ep.enabled ? 'on' : ''}" data-action="toggle" data-i="${i}" title="Enable/disable this filter"></div>
-      <div class="ep-url">
-        <span class="match-type">${ep.matchType ?? 'contains'}</span>${escHtml(ep.url)}
+      <button type="button" class="ep-toggle ${ep.enabled ? 'on' : ''}" role="switch" aria-checked="${ep.enabled}" aria-label="Enable filter" data-action="toggle" data-i="${i}" title="Enable/disable this filter"></button>
+      <div class="ep-url fx-scroll">
+        <span class="badge match-type">${ep.matchType ?? 'contains'}</span>${escHtml(ep.url)}
       </div>
       <div class="ep-actions">
-        <button class="ep-btn" data-action="copy" data-i="${i}" title="Copy">⎘</button>
-        <span class="ep-btn" title="${escHtml(ep.url)}">⌕</span>
-        <button class="ep-btn delete" data-action="delete" data-i="${i}" title="Remove">✕</button>
+        <button type="button" class="btn-icon" data-action="copy" data-i="${i}" title="Copy" aria-label="Copy filter">⎘</button>
+        <button type="button" class="btn-icon" data-action="peek" data-i="${i}" title="Show full URL" aria-label="Show full URL" aria-expanded="false">⌕</button>
+        <button type="button" class="btn-icon danger" data-action="delete" data-i="${i}" title="Remove" aria-label="Remove filter">✕</button>
       </div>
+      <div class="value-tip" popover="manual">${escHtml(ep.url)}</div>
     </div>`).join('');
 }
 
@@ -129,29 +112,65 @@ $('endpointList').addEventListener('click', e => {
   if (action === 'toggle') {
     endpoints[i].enabled = !endpoints[i].enabled;
     save(); render();
+    if (e.detail === 0) focusFilter(i);
   } else if (action === 'delete') {
     endpoints.splice(i, 1);
     save(); render();
     toast('Removed');
+    if (e.detail === 0) focusFilter(i);
   } else if (action === 'copy') {
     navigator.clipboard.writeText(endpoints[i].url).then(() => toast('⎘ Copied'));
+  } else if (action === 'peek') {
+    const row = el.closest('.endpoint-item');
+    const tip = row.querySelector('.value-tip');
+    const willShow = !tip.matches(':popover-open');
+    closeValueTips();
+    if (willShow) {
+      // Float over the popup under the row, or above it if it won't fit below.
+      const r = row.getBoundingClientRect();
+      tip.style.left = `${r.left}px`;
+      tip.style.width = `${r.width}px`;
+      tip.showPopover();
+      const below = r.bottom + 4;
+      tip.style.top = `${below + tip.offsetHeight <= innerHeight ? below : Math.max(4, r.top - 4 - tip.offsetHeight)}px`;
+      el.setAttribute('aria-expanded', 'true');
+    }
   }
 });
+
+// Click-to-peek: hide every open full-URL box.
+function closeValueTips() {
+  $('endpointList').querySelectorAll('.value-tip:popover-open').forEach(t => t.hidePopover());
+  $('endpointList').querySelectorAll('[data-action="peek"]').forEach(b => b.setAttribute('aria-expanded', 'false'));
+}
+
+// A click anywhere outside the box (or its magnifier) dismisses it; so does Escape.
+document.addEventListener('click', e => {
+  if (!e.target.closest('.value-tip, [data-action="peek"]')) closeValueTips();
+});
+// The box floats in the top layer, so it would drift off its row if the list scrolled.
+$('endpointList').addEventListener('scroll', closeValueTips);
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  const open = $('endpointList').querySelector('[data-action="peek"][aria-expanded="true"]');
+  if (open) { closeValueTips(); open.focus(); }
+});
+
+// render() rebuilds the list, which drops keyboard focus (e.detail === 0 means
+// the click came from the keyboard). Put it back on the same row's toggle, the
+// next row after a delete, or the input once the list is empty.
+function focusFilter(i) {
+  const n = endpoints.length;
+  const el = n
+    ? $('endpointList').querySelector(`.ep-toggle[data-i="${Math.min(i, n - 1)}"]`)
+    : $('endpointInput');
+  el.focus();
+}
 
 $('clearCountBtn').addEventListener('click', () => {
   captureCount = 0;
   save(); render();
   toast('Count reset');
-});
-
-document.querySelectorAll('.theme-swatch').forEach(swatch => {
-  swatch.addEventListener('click', () => {
-    const selected = swatch.dataset.themeId;
-    if (selected === currentTheme) return;
-    applyTheme(selected);
-    saveTheme();
-    toast(`Theme: ${selected.toUpperCase()}`);
-  });
 });
 
 // ── Toast ────────────────────────────────────────────────────────────────────
